@@ -1,0 +1,50 @@
+<idea-plugin require-restart="true">
+    <id>com.jetbrains.rider.plugins.fluentautogenerator</id>
+    <name>FluentAutoGenerator</name>
+    <version>_PLACEHOLDER_</version>
+    <vendor url="https://www.linkedin.com/in/slukashov/">Serhii Lukashov</vendor>
+    <idea-version since-build="_PLACEHOLDER_" until-build="_PLACEHOLDER_" />
+    <depends>com.intellij.modules.rider</depends>
+
+    <description>
+        <![CDATA[
+<p><strong>FluentAutoGenerator</strong> helps you create FluentMigrator migration boilerplate directly from Rider's Solution Explorer.</p>
+
+<p>The plugin adds a <strong>FluentMigrator</strong> context menu for folders and generates ready-to-edit C# migration files using project and Git metadata.</p>
+
+<p><strong>What it generates</strong></p>
+<ul>
+    <li><strong>Forward only migration...</strong> creates a <code>ForwardOnlyMigration</code> class with an <code>EmbeddedScript</code> call.</li>
+    <li><strong>Up/down migration...</strong> creates a standard <code>Migration</code> class with <code>Up()</code> and <code>Down()</code> methods.</li>
+</ul>
+
+<p><strong>How to use</strong></p>
+<ol>
+    <li>Open Rider and locate the target folder in Solution Explorer.</li>
+    <li>Right-click the folder and select <strong>FluentMigrator</strong>.</li>
+    <li>Choose <strong>Forward only migration...</strong> or <strong>Up/down migration...</strong>.</li>
+    <li>Enter a migration name in the dialog (a default is suggested from your current Git branch).</li>
+    <li>The plugin creates a new <code>.cs</code> file in the selected folder and opens it for editing.</li>
+</ol>
+
+<p><strong>Notes</strong></p>
+<ul>
+    <li>The migration attribute version is generated from the current UTC timestamp.</li>
+    <li>The migration description is filled with the active Git branch name when available.</li>
+</ul>
+]]>
+    </description>
+    <actions>
+        <group id="FluentMigratorGroup" text="FluentMigrator" popup="true" icon="AllIcons.Nodes.DataTables">
+            <add-to-group group-id="SolutionExplorerPopupMenu" anchor="last"/>
+
+            <action id="FluentMigrator.ForwardOnlyEmbeddedMigrationAction"
+                    class="com.jetbrains.rider.plugins.fluentautogenerator.ForwardOnlyEmbeddedMigrationAction"
+                    text="Forward only migration..." />
+
+            <action id="FluentMigrator.UpDownMigrationAction"
+                    class="com.jetbrains.rider.plugins.fluentautogenerator.UpDownMigrationAction"
+                    text="Up/down migration..." />
+        </group>
+    </actions>
+</idea-plugin>
