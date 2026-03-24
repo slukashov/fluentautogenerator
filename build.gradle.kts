@@ -163,6 +163,7 @@ tasks.patchPluginXml {
     changeNotes.set(changelogMatches.map {
         it.groups[1]!!.value.replace("(?s)\r?\n".toRegex(), "<br />\n")
     }.take(1).joinToString())
+    sinceBuild.set("253.0")
 }
 
 tasks.prepareSandbox {
