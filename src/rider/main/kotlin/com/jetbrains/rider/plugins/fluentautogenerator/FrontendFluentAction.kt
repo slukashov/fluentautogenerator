@@ -11,6 +11,7 @@ import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.TimeUnit
+import java.util.regex.Pattern
 
 abstract class BaseMigrationAction : AnAction() {
 
@@ -32,26 +33,48 @@ abstract class BaseMigrationAction : AnAction() {
         val branchName = getGitBranch(folder.path)
         val defaultClassName = extractClassName(branchName)
 
-        val className = Messages.showInputDialog(
-            project,
-            "Enter migration name:",
-            getDialogTitle(),
-            Messages.getQuestionIcon(),
-            defaultClassName,
-            null
-        )
+        val settings = com.yourname.fluentautogenerator.settings.FluentGeneratorSettingsState.instance
+        val possibleTags = settings.possibleTags
+            .split(",")
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+        
+        val dialog = MigrationInputDialog(project, getDialogTitle(), defaultClassName, possibleTags)
+        
+        // showAndGet() returns true if the user clicks "OK", false if they click "Cancel"
+        if (!dialog.showAndGet()) {
+            return 
+        }
+        
+        // 3. Read the results from the dialog
+        val className = dialog.getClassName()
+        val selectedTags = dialog.getSelectedTags()
 
-        if (className.isNullOrBlank()) 
-            return
+        if (className.isBlank()) return
+
+        // NEW: Check the user's setting for formatting
+        val insertAsStrings = settings.insertTagsAsStrings
+
+        val tagsAttribute = if (selectedTags.isNotEmpty()) {
+            val formattedTags = if (insertAsStrings) {
+                // Formats as: "Development", "UK"
+                selectedTags.joinToString(", ") { "\"$it\"" }
+            } else {
+                // Formats as: Development, UK (Raw)
+                selectedTags.joinToString(", ")
+            }
+            ", Tags($formattedTags)"
+        } else {
+            ""
+        }
 
         val dateFormat = SimpleDateFormat("yyyyMMddHHmmss")
         dateFormat.timeZone = TimeZone.getTimeZone("UTC")
         val versionTimestamp = dateFormat.format(Date())
-        val namespaceName = "${project.name}.Migrations"
-
+        val namespaceName = calculateNamespace(folder)
 
         // Call the specific template from the child class
-        val fileContent = getMigrationTemplate(namespaceName, versionTimestamp, className.replace('-', '_'), branchName)
+        val fileContent = getMigrationTemplate(namespaceName, versionTimestamp, className.replace('-', '_'), branchName, tagsAttribute)
 
         ApplicationManager.getApplication().runWriteAction {
             try {
@@ -69,9 +92,13 @@ abstract class BaseMigrationAction : AnAction() {
     // Abstract methods that child classes must implement
     abstract fun getDialogTitle(): String
     abstract fun getFileExtension(): String
-    abstract fun getMigrationTemplate(namespace: String, timestamp: String, className: String, branchName: String): String
+    abstract fun getMigrationTemplate(namespace: String,
+     timestamp: String,
+     className: String, 
+     branchName: String,
+     tagsAttribute: String): String
 
-    private fun getGitBranch(workingDir: String): String {
+    protected fun getGitBranch(workingDir: String): String {
         return try {
             val proc = ProcessBuilder("git", "rev-parse", "--abbrev-ref", "HEAD")
                 .directory(File(workingDir))
@@ -85,7 +112,7 @@ abstract class BaseMigrationAction : AnAction() {
         }
     }
 
-    private fun extractClassName(branchName: String): String {
+    protected fun extractClassName(branchName: String): String {
         val lastPart = if (branchName.contains("/")) branchName.substringAfterLast("/") else branchName
         val words = lastPart.split("-", "_").filter { it.isNotEmpty() }
         if (words.isEmpty()) return "DefaultModel"
@@ -117,4 +144,62 @@ abstract class BaseMigrationAction : AnAction() {
         // If we hit the top and found no .csproj, hide the menu
         return false
     }
+    
+    protected fun calculateNamespace(folder: com.intellij.openapi.vfs.VirtualFile): String {
+            var current: com.intellij.openapi.vfs.VirtualFile? = folder
+            var csprojFile: com.intellij.openapi.vfs.VirtualFile? = null
+            var projectFolder: com.intellij.openapi.vfs.VirtualFile? = null
+    
+            // 1. Walk up the tree to find the .csproj file
+            while (current != null) {
+                val csproj = current.children?.firstOrNull { it.extension == "csproj" }
+                if (csproj != null) {
+                    csprojFile = csproj
+                    projectFolder = current
+                    break
+                }
+                current = current.parent
+            }
+    
+            // Fallback if no project file is found
+            if (csprojFile == null || projectFolder == null) {
+                return "DefaultNamespace"
+            }
+    
+            // 2. Determine the base namespace (Check .csproj for <RootNamespace>, else use filename)
+            var rootNamespace = csprojFile.nameWithoutExtension
+            try {
+                val content = com.intellij.openapi.vfs.VfsUtilCore.loadText(csprojFile)
+                val matcher = Pattern.compile("<RootNamespace>(.*?)</RootNamespace>").matcher(content)
+                if (matcher.find()) {
+                    rootNamespace = matcher.group(1).trim()
+                }
+            } catch (e: Exception) {
+                // Ignore read errors and stick to the filename
+            }
+    
+            // 3. Calculate the folder path difference (e.g., returns "Data/Migrations")
+            // The '.' tells VfsUtilCore to replace slashes with dots!
+            val relativePath = com.intellij.openapi.vfs.VfsUtilCore.getRelativePath(folder, projectFolder, '.')
+    
+            // 4. Combine them
+            val fullNamespace = if (relativePath.isNullOrEmpty()) {
+                rootNamespace
+            } else {
+                "$rootNamespace.$relativePath"
+            }
+    
+            return sanitizeNamespace(fullNamespace)
+        }
+    
+        // Ensures the namespace is perfectly valid C# syntax
+        private fun sanitizeNamespace(ns: String): String {
+            return ns.replace(" ", "_")
+                     .replace("-", "_")
+                     .split(".")
+                     .joinToString(".") { part ->
+                         // C# namespaces cannot start with a number
+                         if (part.isNotEmpty() && part[0].isDigit()) "_$part" else part
+                     }
+        }
 }

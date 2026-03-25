@@ -5,5 +5,9 @@ class CreateSqlFileAction : BaseMigrationAction() {
     
     override fun getFileExtension() = "sql"
     
-    override fun getMigrationTemplate(namespace: String, timestamp: String, className: String, branchName:String) = ""
+    override fun getMigrationTemplate(namespace: String,
+     timestamp: String, 
+     className: String, 
+     branchName:String, 
+     tagsAttribute: String) = "-- Write your SQL migration for $className here\n"
 }

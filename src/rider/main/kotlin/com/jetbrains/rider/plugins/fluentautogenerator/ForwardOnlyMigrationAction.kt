@@ -1,7 +1,7 @@
 package com.jetbrains.rider.plugins.fluentautogenerator
 
-class UpDownMigrationAction : BaseMigrationAction() {
-    override fun getDialogTitle() = "Generate Up/Down Migration"
+class ForwardOnlyMigrationAction : BaseMigrationAction() {
+    override fun getDialogTitle() = "Generate ForwardOnlyMigration"
     
     override fun getFileExtension() = "cs"
     
@@ -16,15 +16,11 @@ using FluentMigrator;
 namespace $namespace;
 
 [Migration($timestamp, "$branchName")$tagsAttribute]
-public class $className : Migration
+public class $className : ForwardOnlyMigration
 {
     public override void Up()
     {
         // Implement the logic to apply the migration
-    }
-    public override void Down()
-    {
-        // Implement the logic to revert the changes made in Up()
     }
 }
 
