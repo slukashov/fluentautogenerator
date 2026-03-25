@@ -15,8 +15,14 @@ import java.util.concurrent.TimeUnit
 abstract class BaseMigrationAction : AnAction() {
 
     override fun update(e: AnActionEvent) {
-        val file = e.getData(CommonDataKeys.VIRTUAL_FILE)
-        e.presentation.isEnabledAndVisible = file != null && file.isDirectory
+      val file = e.getData(CommonDataKeys.VIRTUAL_FILE)
+              
+      if (file == null || !file.isDirectory) {
+          e.presentation.isEnabledAndVisible = false
+          return
+      }
+      
+      e.presentation.isEnabledAndVisible = isFluentMigratorProject(file)
     }
 
     override fun actionPerformed(e: AnActionEvent) {
@@ -49,7 +55,8 @@ abstract class BaseMigrationAction : AnAction() {
 
         ApplicationManager.getApplication().runWriteAction {
             try {
-                val fileName = "${className}.cs"
+                val extension = getFileExtension()
+                val fileName = "${className}.${extension}"
                 val newFile = folder.createChildData(this, fileName)
                 VfsUtil.saveText(newFile, fileContent)
                 FileEditorManager.getInstance(project).openFile(newFile, true)
@@ -61,6 +68,7 @@ abstract class BaseMigrationAction : AnAction() {
 
     // Abstract methods that child classes must implement
     abstract fun getDialogTitle(): String
+    abstract fun getFileExtension(): String
     abstract fun getMigrationTemplate(namespace: String, timestamp: String, className: String, branchName: String): String
 
     private fun getGitBranch(workingDir: String): String {
@@ -84,53 +92,29 @@ abstract class BaseMigrationAction : AnAction() {
         val formattedName = words.joinToString("") { it.replaceFirstChar { char -> char.uppercase() } }
         return if (formattedName[0].isDigit()) "Model$formattedName" else formattedName
     }
-}
-
-// =========================================================================
-// 2. THE SPECIFIC ACTIONS
-// =========================================================================
-
-class ForwardOnlyEmbeddedMigrationAction : BaseMigrationAction() {
-    override fun getDialogTitle() = "Generate ForwardOnlyMigration with EmbeddedScript"
-    override fun getMigrationTemplate(namespace: String, timestamp: String, className: String, branchName: String) = """
-using System;
-using FluentMigrator;
-
-namespace $namespace
-{
-    [Migration($timestamp, "$branchName")]
-    public class $className : ForwardOnlyMigration
-    {
-        public override void Up()
-        {
-            Execute.EmbeddedScript("$className.sql");
+    
+    private fun isFluentMigratorProject(folder: com.intellij.openapi.vfs.VirtualFile): Boolean {
+        var current: com.intellij.openapi.vfs.VirtualFile? = folder
+        
+        // Walk up the folder tree until we find the project file
+        while (current != null) {
+            // Look for any .csproj file in the current directory
+            val csproj = current.children?.firstOrNull { it.extension == "csproj" }
+            
+            if (csproj != null) {
+                return try {
+                    // Read the file and check for the NuGet package
+                    val content = com.intellij.openapi.vfs.VfsUtilCore.loadText(csproj)
+                    content.contains("FluentMigrator")
+                } catch (ex: Exception) {
+                    false
+                }
+            }
+            // Move up to the parent folder and check again
+            current = current.parent
         }
+        
+        // If we hit the top and found no .csproj, hide the menu
+        return false
     }
-}
-    """.trimIndent()
-}
-
-class UpDownMigrationAction : BaseMigrationAction() {
-    override fun getDialogTitle() = "Generate Up/Down Migration"
-    override fun getMigrationTemplate(namespace: String, timestamp: String, className: String, branchName:String) = """
-using System;
-using FluentMigrator;
-
-namespace $namespace
-{
-    [Migration($timestamp, "$branchName")]
-    public class $className : Migration
-    {
-        public override void Up()
-        {
-            // Implement the logic to apply the migration
-        }
-
-        public override void Down()
-        {
-            // Implement the logic to revert the changes made in Up()
-        }
-    }
-}
-    """.trimIndent()
 }

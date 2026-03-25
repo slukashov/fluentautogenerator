@@ -1,14 +1,14 @@
 <idea-plugin require-restart="true">
     <id>com.slukashov.fluentautogenerator</id>
     <name>FluentAutoGenerator</name>
-    <version>1.0.0.2</version>
+    <version>1.0.1</version>
     <vendor>Serhii Lukashov</vendor>
     <idea-version since-build="253.0" />
     <depends>com.intellij.modules.rider</depends>
 
     <description>
         <![CDATA[
-<p><strong>FluentAutoGenerator</strong> helps you create FluentMigrator migration boilerplate directly from Rider's Solution Explorer.</p>
+<p><strong>FluentAutoGenerator</strong> helps you create a FluentMigrator migration boilerplate directly from Rider's Solution Explorer.</p>
 
 <p>The plugin adds a <strong>FluentMigrator</strong> context menu for folders and generates ready-to-edit C# migration files using project and Git metadata.</p>
 
@@ -40,11 +40,16 @@
 
             <action id="FluentMigrator.ForwardOnlyEmbeddedMigrationAction"
                     class="com.jetbrains.rider.plugins.fluentautogenerator.ForwardOnlyEmbeddedMigrationAction"
-                    text="Forward only migration..." />
+                    text="Create Forward only migration"  />
 
             <action id="FluentMigrator.UpDownMigrationAction"
                     class="com.jetbrains.rider.plugins.fluentautogenerator.UpDownMigrationAction"
-                    text="Up/down migration..." />
+                    text="Create Up/down migration" />
+
+            <action id="FluentMigrator.CreateSqlFileAction"
+                    class="com.jetbrains.rider.plugins.fluentautogenerator.CreateSqlFileAction"
+                    text="Creat SQL file" />
+            
         </group>
     </actions>
 </idea-plugin>
