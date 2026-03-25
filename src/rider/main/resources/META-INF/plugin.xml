@@ -1,36 +1,56 @@
 <idea-plugin require-restart="true">
     <id>com.slukashov.fluentautogenerator</id>
     <name>FluentAutoGenerator</name>
-    <version>1.0.2</version>
+    <version>1.0.3</version>
     <vendor>Serhii Lukashov</vendor>
     <idea-version since-build="253.0" />
     <depends>com.intellij.modules.rider</depends>
 
     <description>
         <![CDATA[
-<p><strong>FluentAutoGenerator</strong> helps you create a FluentMigrator migration boilerplate directly from Rider's Solution Explorer.</p>
+<p><strong>FluentAutoGenerator</strong> is a comprehensive FluentMigrator code generation plugin for JetBrains Rider that accelerates migration development with smart templates, navigation tools, and customization options.</p>
 
-<p>The plugin adds a <strong>FluentMigrator</strong> context menu for folders and generates ready-to-edit C# migration files using project and Git metadata.</p>
+<p><strong>Key Features</strong></p>
+<ul>
+    <li><strong>Multiple Migration Types:</strong> Forward-only, forward-only with embedded SQL, and up/down migrations</li>
+    <li><strong>Custom Templates:</strong> Create and manage your own migration templates with placeholder support</li>
+    <li><strong>Migration Tags:</strong> Tag migrations with custom labels (e.g., Development, Production, Staging)</li>
+    <li><strong>Smart Navigation:</strong> Gutter icons to quickly navigate from C# code to associated SQL files</li>
+    <li><strong>SQL File Generation:</strong> Create standalone SQL migration files alongside C# migrations</li>
+    <li><strong>Git Integration:</strong> Auto-populate migration names and descriptions from your current Git branch</li>
+</ul>
 
 <p><strong>What it generates</strong></p>
 <ul>
-    <li><strong>Forward only migration...</strong> creates a <code>ForwardOnlyMigration</code> class with an <code>EmbeddedScript</code> call.</li>
-    <li><strong>Up/down migration...</strong> creates a standard <code>Migration</code> class with <code>Up()</code> and <code>Down()</code> methods.</li>
+    <li><strong>Forward only migration</strong> - creates a <code>ForwardOnlyMigration</code> class with an <code>EmbeddedScript</code> call</li>
+    <li><strong>Forward only migration with SQL</strong> - generates both a <code>.cs</code> file and a <code>.sql</code> file in a <code>Sql/</code> subfolder with automatic embedding</li>
+    <li><strong>Up/down migration</strong> - creates a standard <code>Migration</code> class with <code>Up()</code> and <code>Down()</code> methods</li>
+    <li><strong>SQL file</strong> - creates a standalone <code>.sql</code> file for migration scripts</li>
+    <li><strong>Custom template migrations</strong> - generates migrations from your user-defined templates</li>
 </ul>
 
 <p><strong>How to use</strong></p>
 <ol>
-    <li>Open Rider and locate the target folder in Solution Explorer.</li>
-    <li>Right-click the folder and select <strong>FluentMigrator</strong>.</li>
-    <li>Choose <strong>Forward only migration...</strong> or <strong>Up/down migration...</strong>.</li>
-    <li>Enter a migration name in the dialog (a default is suggested from your current Git branch).</li>
-    <li>The plugin creates a new <code>.cs</code> file in the selected folder and opens it for editing.</li>
+    <li>Right-click a folder in Solution Explorer and select <strong>FluentMigrator</strong></li>
+    <li>Choose from available migration types or your custom templates</li>
+    <li>Enter a migration name and optionally select tags from the dialog</li>
+    <li>The plugin creates the files with auto-generated timestamps and namespaces</li>
 </ol>
 
-<p><strong>Notes</strong></p>
+<p><strong>Configuration</strong></p>
+<p>Access settings via <strong>File → Settings → Tools → FluentMigrator Generator</strong> to:</p>
 <ul>
-    <li>The migration attribute version is generated from the current UTC timestamp.</li>
-    <li>The migration description is filled with the active Git branch name when available.</li>
+    <li>Define available migration tags (comma-separated list)</li>
+    <li>Configure tag formatting (string literals vs. raw identifiers applicable for predefined constants in project)</li>
+    <li>Create and manage custom migration templates with placeholders: <code>{Namespace}</code>, <code>{Timestamp}</code>, <code>{ClassName}</code>, <code>{BranchName}</code>, <code>{Tags}</code>, <code>{Prefix}</code></li>
+</ul>
+
+<p><strong>Smart Features</strong></p>
+<ul>
+    <li>Automatic project detection - menu only appears in FluentMigrator projects</li>
+    <li>Timestamp-based versioning (UTC)</li>
+    <li>Git branch-based descriptions</li>
+    <li>Gutter icons for navigating between C# migrations and their SQL files</li>
 </ul>
 ]]>
     </description>
@@ -53,16 +73,24 @@
             <action id="FluentMigrator.CreateSqlFileAction"
                     class="com.jetbrains.rider.plugins.fluentautogenerator.CreateSqlFileAction"
                     text="Creat SQL file" />
-            
+            <separator/>
+
+            <group id="FluentMigrator.DynamicTemplates"
+                   class="com.jetbrains.rider.plugins.fluentautogenerator.DynamicTemplateActionGroup"
+                   popup="false"/>
         </group>
     </actions>
 
     <extensions defaultExtensionNs="com.intellij">
-        <applicationService serviceImplementation="com.yourname.fluentautogenerator.settings.FluentGeneratorSettingsState"/>
+        <applicationService serviceImplementation="com.jetbrains.rider.plugins.fluentautogenerator.settings.FluentGeneratorSettingsState"/>
 
         <applicationConfigurable parentId="tools"
-                                 instance="com.yourname.fluentautogenerator.settings.FluentGeneratorSettingsConfigurable"
-                                 id="com.yourname.fluentautogenerator.settings.FluentGeneratorSettingsConfigurable"
+                                 instance="com.jetbrains.rider.plugins.fluentautogenerator.settings.FluentGeneratorSettingsConfigurable"
+                                 id="com.jetbrains.rider.plugins.fluentautogenerator.settings.FluentGeneratorSettingsConfigurable"
                                  displayName="FluentMigrator Generator"/>
+        
+        <codeInsight.lineMarkerProvider
+                language="C#"
+                implementationClass="com.jetbrains.rider.plugins.fluentautogenerator.markers.FluentMigrationLineMarkerProvider"/>
     </extensions>
 </idea-plugin>

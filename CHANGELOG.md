@@ -40,4 +40,33 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
     - Improved namespace calculation with `calculateNamespace()` helper method
     - Standardized migration template generation with support for optional tags parameter
 
+## 1.0.3
 
+### ✨ New Features
+
+- **Custom Template System**: Added support for creating and using custom migration templates
+    - New dynamic menu in context menu for custom templates created by users
+    - Templates support placeholders: `{Namespace}`, `{Timestamp}`, `{ClassName}`, `{BranchName}`, `{Tags}`, and `{Prefix}`
+    - Custom templates can be added, edited, and removed through the settings UI
+    - Each template has a configurable menu name and file prefix
+
+- **Navigation Gutter Icon**: Added line marker provider for SQL migrations
+    - Gutter icon appears next to `.sql` file references in C# migration code
+    - Click the icon to navigate directly to the associated SQL file in the `Sql/` subfolder
+    - Improves workflow when working with forward-only migrations with embedded SQL
+
+### 🔧 Improvements
+
+- **Enhanced Settings UI**: Major redesign of the plugin settings page
+    - Added split-pane interface for managing custom templates
+    - Left panel: List of all custom templates with Add/Remove buttons
+    - Right panel: Editor for template name, file prefix, and content
+    - Templates are editable with live preview
+    - Settings now include template management alongside existing tag configuration
+
+- **Package References**: Added FluentMigrator.Runner.Postgres package reference for PostgreSQL support
+
+### 🐛 Bug Fixes
+
+- Fixed namespace resolution in `FluentGeneratorSettingsState` and `FluentGeneratorSettingsConfigurable`
+- Updated plugin.xml to properly register the new dynamic template action group and line marker provider

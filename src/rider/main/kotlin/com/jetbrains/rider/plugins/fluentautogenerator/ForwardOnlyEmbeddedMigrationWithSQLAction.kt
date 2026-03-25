@@ -31,7 +31,7 @@ class ForwardOnlyEmbeddedMigrationWithSQLAction : BaseMigrationAction() {
         val branchName = getGitBranch(folder.path)
         val defaultClassName = extractClassName(branchName)
 
-        val settings = com.yourname.fluentautogenerator.settings.FluentGeneratorSettingsState.instance
+        val settings = com.jetbrains.rider.plugins.fluentautogenerator.settings.FluentGeneratorSettingsState.instance
         val possibleTags = settings.possibleTags
             .split(",")
             .map { it.trim() }
