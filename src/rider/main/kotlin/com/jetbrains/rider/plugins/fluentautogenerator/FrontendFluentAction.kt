@@ -202,4 +202,48 @@ abstract class BaseMigrationAction : AnAction() {
                          if (part.isNotEmpty() && part[0].isDigit()) "_$part" else part
                      }
         }
+        
+        protected fun ensureSqlWildcardEmbedded(folder: com.intellij.openapi.vfs.VirtualFile) {
+           var current: com.intellij.openapi.vfs.VirtualFile? = folder
+           var csprojFile: com.intellij.openapi.vfs.VirtualFile? = null
+   
+           // 1. Walk up the tree to find the .csproj file
+           while (current != null) {
+               val csproj = current.children?.firstOrNull { it.extension == "csproj" }
+               if (csproj != null) {
+                   csprojFile = csproj
+                   break
+               }
+               current = current.parent
+           }
+   
+           if (csprojFile == null) return
+   
+           try {
+               var content = com.intellij.openapi.vfs.VfsUtilCore.loadText(csprojFile)
+               
+               // 2. Check if ANY wildcard for SQL files already exists in the project
+               // We check for common patterns teams might use
+               if (content.contains("\"**\\*.sql\"") || 
+                   content.contains("\"**/*.sql\"") || 
+                   content.contains("\"Sql\\**\\*.sql\"") ||
+                   content.contains("\"Sql\\*.sql\"")) {
+                   return // A wildcard is already handling it, do nothing!
+               }
+   
+               // 3. Inject the global wildcard right before the closing </Project> tag
+               val itemGroup = """
+     <ItemGroup>
+       <EmbeddedResource Include="**\*.sql" />
+     </ItemGroup>
+   
+   </Project>"""
+               
+               content = content.replace("</Project>", itemGroup)
+               com.intellij.openapi.vfs.VfsUtil.saveText(csprojFile, content)
+               
+           } catch (e: Exception) {
+               // If we fail to read/write the project file, skip quietly
+           }
+       }
 }

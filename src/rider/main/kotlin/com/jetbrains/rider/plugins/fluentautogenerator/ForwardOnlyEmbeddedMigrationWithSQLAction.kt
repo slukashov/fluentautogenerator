@@ -93,26 +93,27 @@ public class $className : ForwardOnlyMigration
 
         ApplicationManager.getApplication().runWriteAction {
             try {
-                // 1. Find or create the "Sql" subfolder!
+                // 1. Create the Sql folder and .sql file
                 var sqlFolder = folder.findChild("Sql")
                 if (sqlFolder == null) {
                     sqlFolder = folder.createChildDirectory(this, "Sql")
                 }
-
-                // 2. Create the SQL file INSIDE the Sql subfolder
                 val sqlFile = sqlFolder.createChildData(this, sqlFileName)
-                VfsUtil.saveText(sqlFile, sqlContent)
-
-                // 3. Create the C# file in the folder you right-clicked
+                com.intellij.openapi.vfs.VfsUtil.saveText(sqlFile, sqlContent)
+        
+                // NEW: Ensure the wildcard exists in the .csproj!
+                ensureSqlWildcardEmbedded(folder)
+        
+                // 2. Create the C# file
                 val csFile = folder.createChildData(this, csFileName)
-                VfsUtil.saveText(csFile, csContent)
-
-                // 4. Open BOTH files in the editor side-by-side
-                FileEditorManager.getInstance(project).openFile(sqlFile, true)
-                FileEditorManager.getInstance(project).openFile(csFile, true)
+                com.intellij.openapi.vfs.VfsUtil.saveText(csFile, csContent)
+                
+                // 3. Open BOTH files in the editor
+                com.intellij.openapi.fileEditor.FileEditorManager.getInstance(project).openFile(sqlFile, true)
+                com.intellij.openapi.fileEditor.FileEditorManager.getInstance(project).openFile(csFile, true)
                 
             } catch (ex: Exception) {
-                Messages.showErrorDialog(project, "Error creating files: ${ex.message}", "Error")
+                com.intellij.openapi.ui.Messages.showErrorDialog(project, "Error creating files: ${ex.message}", "Error")
             }
         }
     }
