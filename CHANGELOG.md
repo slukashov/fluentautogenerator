@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Refactored migration generation logic into shared BaseMigrationAction base class
 - Fixed class resolution issues in migration action implementations
 
-## Version 1.0.2
+## 1.0.2
 
 ###  New Features
 
