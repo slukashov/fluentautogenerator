@@ -7,7 +7,10 @@ import com.intellij.icons.AllIcons
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiNameIdentifierOwner
 import com.intellij.psi.PsiManager
+import com.intellij.psi.PsiFile
 import com.intellij.psi.impl.source.tree.LeafPsiElement
+import com.intellij.psi.search.FilenameIndex
+import com.intellij.psi.search.GlobalSearchScope
 
 /**
  * Provides a gutter icon to navigate from a specific code element to its related generated code.
@@ -21,46 +24,45 @@ class FluentMigrationLineMarkerProvider : RelatedItemLineMarkerProvider() {
      */
     override fun collectNavigationMarkers(
         element: PsiElement,
-        result: MutableCollection<in RelatedItemLineMarkerInfo<*>>) {
-        if (element !is LeafPsiElement) {
+        result: MutableCollection<in RelatedItemLineMarkerInfo<*>>
+    ) {
+        if (element !is LeafPsiElement) 
             return
-        }
-  
-        val text = element.text
-        if (!text.endsWith(".sql\"") && !text.endsWith(".sql'")) {
-            return
-        }
-        val targetElementToNavigateTo = findTargetSqlFile(element)
-         
+    
+        val rawText = element.text
+        val isSqlString = (rawText.startsWith("\"") || rawText.startsWith("'")) && 
+                           rawText.contains(".sql", ignoreCase = true)
+    
+        if (!isSqlString) 
+           return
+    
+        val cleanFileName = rawText.trim('\"', '\'')
+        val targetElementToNavigateTo = findTargetSqlFile(element, cleanFileName)
+    
         if (targetElementToNavigateTo != null) {
-            val builder = NavigationGutterIconBuilder.create(AllIcons.Nodes.DataTables) // Choose a relevant icon
+            val builder = NavigationGutterIconBuilder.create(AllIcons.Nodes.DataTables)
                 .setTargets(targetElementToNavigateTo)
-                .setTooltipText("Navigate to generated SQL migration")
-        
+                .setTooltipText("Navigate to $cleanFileName")
+    
             result.add(builder.createLineMarkerInfo(element))
         }
     }
 
-/**
+     /**
      * Locates the associated SQL file inside a specific subfolder.
      * @param sourceElement The C# element currently being evaluated.
      * @return The PSI representation of the SQL file, or null if it cannot be found.
      */
-    private fun findTargetSqlFile(sourceElement: PsiElement): PsiElement? {
-
-        val targetFolderName = "Sql" 
-
-        val currentPsiFile = sourceElement.containingFile ?: return null
-        val virtualFile = currentPsiFile.virtualFile ?: return null
-        val baseFileName = virtualFile.nameWithoutExtension
-        val targetSqlFileName = "$baseFileName.sql"
-        val parentDirectory = virtualFile.parent ?: return null
-        val targetDirectory = parentDirectory.findChild(targetFolderName) 
-        if (targetDirectory == null || !targetDirectory.isDirectory) {
-            return null 
-        }
-        val sqlVirtualFile = targetDirectory.findChild(targetSqlFileName) ?: return null
-        val project = sourceElement.project
-        return PsiManager.getInstance(project).findFile(sqlVirtualFile)
+    private fun findTargetSqlFile(sourceElement: PsiElement, fileName: String): PsiFile? {
+       val project = sourceElement.project
+       val scope = GlobalSearchScope.projectScope(project)
+       val foundFiles = FilenameIndex.getFilesByName(project, fileName, scope)
+       return when {
+           foundFiles.isEmpty() -> null
+           foundFiles.size == 1 -> foundFiles.first()
+           else -> {
+               foundFiles.first()
+           }
+       }
     }
 }

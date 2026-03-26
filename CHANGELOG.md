@@ -64,9 +64,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
     - Templates are editable with live preview
     - Settings now include template management alongside existing tag configuration
 
-- **Package References**: Added FluentMigrator.Runner.Postgres package reference for PostgreSQL support
-
 ### 🐛 Bug Fixes
 
 - Fixed namespace resolution in `FluentGeneratorSettingsState` and `FluentGeneratorSettingsConfigurable`
 - Updated plugin.xml to properly register the new dynamic template action group and line marker provider
+
+## 1.0.3.1
+### 🔧 Improvements
+- Updated search for line markers
