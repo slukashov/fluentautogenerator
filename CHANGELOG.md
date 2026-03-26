@@ -72,3 +72,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## 1.0.3.1
 ### 🔧 Improvements
 - Updated search for line markers
+
+## 1.0.3.2
+### 🔧 Improvements
+- Replced call of getFilesByName to getVirtualFilesByName

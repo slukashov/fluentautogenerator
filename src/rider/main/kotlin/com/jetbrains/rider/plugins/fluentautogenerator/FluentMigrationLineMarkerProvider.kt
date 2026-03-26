@@ -54,15 +54,13 @@ class FluentMigrationLineMarkerProvider : RelatedItemLineMarkerProvider() {
      * @return The PSI representation of the SQL file, or null if it cannot be found.
      */
     private fun findTargetSqlFile(sourceElement: PsiElement, fileName: String): PsiFile? {
-       val project = sourceElement.project
-       val scope = GlobalSearchScope.projectScope(project)
-       val foundFiles = FilenameIndex.getFilesByName(project, fileName, scope)
-       return when {
-           foundFiles.isEmpty() -> null
-           foundFiles.size == 1 -> foundFiles.first()
-           else -> {
-               foundFiles.first()
-           }
-       }
+      val project = sourceElement.project
+      val scope = GlobalSearchScope.projectScope(project)
+      val virtualFiles = FilenameIndex.getVirtualFilesByName(fileName, scope)
+      if (virtualFiles.isEmpty()) {
+          return null
+      }
+      val targetVirtualFile = virtualFiles.first()
+      return PsiManager.getInstance(project).findFile(targetVirtualFile)
     }
 }
