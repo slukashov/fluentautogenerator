@@ -11,6 +11,7 @@ plugins {
 // Configuration Variables (Passed from gradle.properties)
 val ProductVersion: String by project
 val RiderPluginId: String by project
+val PublishToken: String by project
 
 // 1. REPOSITORY FIX: Added mavenCentral() so the Kotlin compiler can find its build tools
 repositories {
@@ -91,6 +92,7 @@ tasks.buildPlugin {
 }
 
 tasks.publishPlugin {
+    token.set(PublishToken)
 }
 
 // 7. SEARCHABLE OPTIONS FIX: 
