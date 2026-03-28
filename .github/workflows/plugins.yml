@@ -34,4 +34,4 @@ jobs:
         # We map the GitHub Secret to the environment variable Gradle is looking for
         env:
           JETBRAINS_TOKEN: ${{ secrets.JETBRAINS_TOKEN }}
-        run: ./gradlew publishPlugin
+        run: ./gradlew publishPlugin "-PPublishToken=${{ secrets.JETBRAINS_TOKEN }}"
