@@ -1,34 +1,20 @@
-import com.jetbrains.plugin.structure.base.utils.isFile
-import groovy.ant.FileNameFinder
-import org.apache.tools.ant.taskdefs.condition.Os
 import org.jetbrains.intellij.platform.gradle.Constants
-import java.io.ByteArrayOutputStream
 
 plugins {
     id("java")
-    alias(libs.plugins.kotlinJvm)
-    id("org.jetbrains.intellij.platform") version "2.10.4"     // See https://github.com/JetBrains/intellij-platform-gradle-plugin/releases
-    id("me.filippov.gradle.jvm.wrapper") version "0.14.0"
+    // Ensure these versions match your libs.versions.toml or are hardcoded (e.g., "2.0.0")
+    alias(libs.plugins.kotlinJvm) 
+    id("org.jetbrains.intellij.platform") version "2.10.4"
     id("org.jetbrains.changelog") version "2.2.0"
 }
 
-val isWindows = Os.isFamily(Os.FAMILY_WINDOWS)
-extra["isWindows"] = isWindows
-
-val DotnetSolution: String by project
-val BuildConfiguration: String by project
+// Configuration Variables (Passed from gradle.properties)
 val ProductVersion: String by project
-val DotnetPluginId: String by project
 val RiderPluginId: String by project
-val PublishToken: String by project
 
-allprojects {
-    repositories {
-        maven { setUrl("https://cache-redirector.jetbrains.com/maven-central") }
-    }
-}
-
+// 1. REPOSITORY FIX: Added mavenCentral() so the Kotlin compiler can find its build tools
 repositories {
+    mavenCentral() 
     intellijPlatform {
         defaultRepositories()
         jetbrainsRuntime()
@@ -38,15 +24,12 @@ repositories {
 tasks.wrapper {
     gradleVersion = "8.8"
     distributionType = Wrapper.DistributionType.ALL
-    distributionUrl = "https://cache-redirector.jetbrains.com/services.gradle.org/distributions/gradle-${gradleVersion}-all.zip"
 }
 
+// 2. VERSIONING: Pulling from the 'extra' property set in your project
 version = extra["PluginVersion"] as String
 
-tasks.processResources {
-    from("dependencies.json") { into("META-INF") }
-}
-
+// 3. SOURCE SETS: Mapping to your specific Rider folder structure
 sourceSets {
     main {
         java.srcDir("src/rider/main/java")
@@ -56,164 +39,62 @@ sourceSets {
 }
 
 tasks.compileKotlin {
-    kotlinOptions { jvmTarget = "17" }
-}
-
-val setBuildTool by tasks.registering {
-    doLast {
-        extra["executable"] = "dotnet"
-        var args = mutableListOf("msbuild")
-
-        if (isWindows) {
-            val stdout = ByteArrayOutputStream()
-            exec {
-                executable("${rootDir}\\tools\\vswhere.exe")
-                args("-latest", "-property", "installationPath", "-products", "*")
-                standardOutput = stdout
-                workingDir(rootDir)
-            }
-
-            val directory = stdout.toString().trim()
-            if (directory.isNotEmpty()) {
-                val files = FileNameFinder().getFileNames("${directory}\\MSBuild", "**/MSBuild.exe")
-                extra["executable"] = files.get(0)
-                args = mutableListOf("/v:minimal")
-            }
-        }
-
-        args.add("${DotnetSolution}")
-        args.add("/p:Configuration=${BuildConfiguration}")
-        args.add("/p:HostFullIdentifier=")
-        extra["args"] = args
-    }
-}
-
-val compileDotNet by tasks.registering {
-    dependsOn(setBuildTool)
-    doLast {
-        val executable: String by setBuildTool.get().extra
-        val arguments = (setBuildTool.get().extra["args"] as List<String>).toMutableList()
-        arguments.add("/t:Restore;Rebuild")
-        exec {
-            executable(executable)
-            args(arguments)
-            workingDir(rootDir)
-        }
-    }
-}
-
-val testDotNet by tasks.registering {
-    doLast {
-        exec {
-            executable("dotnet")
-            args("test","${DotnetSolution}","--logger","GitHubActions")
-            workingDir(rootDir)
-        }
-    }
-}
-
-tasks.buildPlugin {
-    doLast {
-        copy {
-            from("${buildDir}/distributions/${rootProject.name}-${version}.zip")
-            into("${rootDir}/output")
-        }
-
-        val changelogText = file("${rootDir}/CHANGELOG.md").readText()
-        val changelogMatches = Regex("(?s)(-.+?)(?=##|$)").findAll(changelogText)
-        val changeNotes = changelogMatches.map {
-            it.groups[1]!!.value.replace("(?s)- ".toRegex(), "\u2022 ").replace("`", "").replace(",", "%2C").replace(";", "%3B")
-        }.take(1).joinToString()
-
-        val executable: String by setBuildTool.get().extra
-        val arguments = (setBuildTool.get().extra["args"] as List<String>).toMutableList()
-        arguments.add("/t:Pack")
-        arguments.add("/p:PackageOutputPath=${rootDir}/output")
-        arguments.add("/p:PackageReleaseNotes=${changeNotes}")
-        arguments.add("/p:PackageVersion=${version}")
-        exec {
-            executable(executable)
-            args(arguments)
-            workingDir(rootDir)
-        }
+    kotlinOptions { 
+        jvmTarget = "17" 
+        freeCompilerArgs = listOf("-Xjvm-default=all")
     }
 }
 
 dependencies {
     intellijPlatform {
+        // Targets the specific Rider version for C# PSI access
         rider(ProductVersion, useInstaller = false)
         jetbrainsRuntime()
     }
 }
 
 tasks.runIde {
+    // Standard memory allocation for a Rider sandbox
     maxHeapSize = "1500m"
 }
 
+// 4. CHANGELOG CONFIGURATION
 changelog {
+    // Support for 4-digit versions like 1.0.3.1
     headerParserRegex.set("""^\[?(\d+(?:\.\d+)+)\]?$""".toRegex())
     groups.set(listOf("Added", "Changed", "Deprecated", "Removed", "Fixed", "Security"))
 }
 
+// 5. PLUGIN XML PATCHING
 tasks.patchPluginXml {
     changeNotes.set(provider {
+        // Automatically pulls the latest notes from CHANGELOG.md
         changelog.renderItem(
             changelog.getOrNull(project.version.toString()) ?: changelog.getUnreleased(),
             org.jetbrains.changelog.Changelog.OutputType.HTML
         )
     })
+    
+    // Pulls from 'SinceBuild' in gradle.properties
     sinceBuild.set(providers.gradleProperty("SinceBuild"))
 }
 
-tasks.prepareSandbox {
-    dependsOn(compileDotNet)
-
-    val outputFolder = "${rootDir}/src/dotnet/${DotnetPluginId}/bin/${DotnetPluginId}.Rider/${BuildConfiguration}"
-    val dllFiles = listOf(
-            "$outputFolder/${DotnetPluginId}.dll",
-            "$outputFolder/${DotnetPluginId}.pdb",
-    )
-
-    dllFiles.forEach({ f ->
-        val file = file(f)
-        from(file, { into("${rootProject.name}/dotnet") })
-    })
-
+// 6. BUILD & PUBLISH: Pure JVM logic only
+tasks.buildPlugin {
     doLast {
-        dllFiles.forEach({ f ->
-            val file = file(f)
-            if (!file.exists()) throw RuntimeException("File ${file} does not exist")
-        })
+        // Ensure the output directory exists for your CI/CD to grab the ZIP
+        copy {
+            from("${layout.buildDirectory.get()}/distributions/${rootProject.name}-${version}.zip")
+            into("${rootDir}/output")
+        }
     }
 }
 
 tasks.publishPlugin {
-    dependsOn(testDotNet)
-    dependsOn(tasks.buildPlugin)
-    token.set("${PublishToken}")
-
-    doLast {
-        exec {
-            executable("dotnet")
-            args("nuget","push","output/${DotnetPluginId}.${version}.nupkg","--api-key","${PublishToken}","--source","https://plugins.jetbrains.com")
-            workingDir(rootDir)
-        }
-    }
 }
 
-val riderModel: Configuration by configurations.creating {
-    isCanBeConsumed = true
-    isCanBeResolved = false
-}
-
-artifacts {
-    add(riderModel.name, provider {
-        intellijPlatform.platformPath.resolve("lib/rd/rider-model.jar").also {
-            check(it.isFile) {
-                "rider-model.jar is not found at $riderModel"
-            }
-        }
-    }) {
-        builtBy(Constants.Tasks.INITIALIZE_INTELLIJ_PLATFORM_PLUGIN)
-    }
+// 7. SEARCHABLE OPTIONS FIX: 
+// Disabling this prevents the exit code 255 error on macOS/Headless environments
+tasks.buildSearchableOptions {
+    enabled = false
 }
