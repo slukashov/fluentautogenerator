@@ -2,8 +2,8 @@
 
 A **Rider & ReSharper plugin** that streamlines FluentMigrator database migration scaffolding. Generate production-ready migration boilerplate in seconds directly from your IDE.
 
-[![Rider](https://img.shields.io/jetbrains/plugin/v/RIDER_PLUGIN_ID.svg?label=Rider&colorB=0A7BBB&style=for-the-badge&logo=rider)](https://plugins.jetbrains.com/plugin/30879-fluentautogenerator)
-[![ReSharper](https://img.shields.io/jetbrains/plugin/v/RESHARPER_PLUGIN_ID.svg?label=ReSharper&colorB=0A7BBB&style=for-the-badge&logo=resharper)](https://plugins.jetbrains.com/plugin/30879-fluentautogenerator)
+[![Rider](https://img.shields.io/jetbrains/plugin/v/30879-fluentautogenerator.svg?label=Rider&colorB=0A7BBB&style=for-the-badge&logo=rider)](https://plugins.jetbrains.com/plugin/30879-fluentautogenerator)
+[![ReSharper](https://img.shields.io/jetbrains/plugin/v/30879-fluentautogenerator.svg?label=ReSharper&colorB=0A7BBB&style=for-the-badge&logo=resharper)](https://plugins.jetbrains.com/plugin/30879-fluentautogenerator)
 
 ---
 
