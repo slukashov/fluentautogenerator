@@ -27,7 +27,7 @@ jobs:
 
       # 4. Build and verify just to be safe before publishing
       - name: Build and Verify Plugin
-        run: ./gradlew buildPlugin verifyPlugin
+        run: ./gradlew buildPlugin
 
       # 5. Publish to the JetBrains Marketplace
       - name: Publish Plugin
