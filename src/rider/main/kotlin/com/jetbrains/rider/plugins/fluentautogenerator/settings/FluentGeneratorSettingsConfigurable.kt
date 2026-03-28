@@ -15,6 +15,9 @@ class FluentGeneratorSettingsConfigurable : Configurable {
     // Global Settings
     private val tagsField = JBTextField()
     private val asStringsCheckbox = JBCheckBox("Insert tags as strings (e.g. \"Dev\") instead of raw")
+    
+    // NEW: Add the text field for the default SQL directory
+    private val defaultSqlDirectoryField = JBTextField()
 
     // Template UI Components
     private val listModel = DefaultListModel<CustomTemplate>()
@@ -25,25 +28,21 @@ class FluentGeneratorSettingsConfigurable : Configurable {
         font = java.awt.Font("Monospaced", java.awt.Font.PLAIN, 12)
     }
 
-    // Flag to prevent recursive updates when clicking the list
     private var isUpdatingFromList = false
 
     override fun getDisplayName(): String = "FluentMigrator Generator"
 
     override fun createComponent(): JComponent? {
-        // 1. Setup the List display
         templateList.setCellRenderer { _, value, _, _, _ ->
             JBLabel(value.menuName)
         }
 
-        // 2. Build the Editor Panel (Right Side)
         val editorPanel = FormBuilder.createFormBuilder()
             .addLabeledComponent("Menu Name:", templateNameField)
             .addLabeledComponent("File Prefix:", templatePrefixField)
             .addLabeledComponent("Template Content:", JBScrollPane(templateContentArea))
             .panel
 
-        // 3. Build the List Panel with Add/Remove buttons (Left Side)
         val addBtn = JButton("Add").apply {
             addActionListener {
                 val newTemplate = CustomTemplate("New Template", "Custom", "/* your code */")
@@ -73,11 +72,9 @@ class FluentGeneratorSettingsConfigurable : Configurable {
             add(btnPanel, BorderLayout.SOUTH)
         }
 
-        // 4. Combine them into a Split Pane
         val splitPane = JSplitPane(JSplitPane.HORIZONTAL_SPLIT, listPanel, editorPanel)
-        splitPane.dividerLocation = 200 // Width of the list
+        splitPane.dividerLocation = 200
 
-        // 5. Listeners to save text changes into the selected object
         val docListener = object : DocumentListener {
             override fun insertUpdate(e: DocumentEvent?) = saveEditsToObject()
             override fun removeUpdate(e: DocumentEvent?) = saveEditsToObject()
@@ -87,7 +84,6 @@ class FluentGeneratorSettingsConfigurable : Configurable {
         templatePrefixField.document.addDocumentListener(docListener)
         templateContentArea.document.addDocumentListener(docListener)
 
-        // 6. Listener to load data into the editor when a list item is clicked
         templateList.addListSelectionListener {
             val selected = templateList.selectedValue
             if (selected != null) {
@@ -101,6 +97,8 @@ class FluentGeneratorSettingsConfigurable : Configurable {
 
         // 7. Put it all together in the main window
         myMainPanel = FormBuilder.createFormBuilder()
+            // NEW: Add the directory field to the top of the UI form
+            .addLabeledComponent("Default SQL directory:", defaultSqlDirectoryField) 
             .addLabeledComponent(JBLabel("Available tags (comma-separated): "), tagsField, 1, false)
             .addComponent(asStringsCheckbox, 1)
             .addSeparator()
@@ -118,7 +116,7 @@ class FluentGeneratorSettingsConfigurable : Configurable {
         selected.menuName = templateNameField.text
         selected.filePrefix = templatePrefixField.text
         selected.content = templateContentArea.text
-        templateList.repaint() // Updates the name in the left-hand list visually
+        templateList.repaint()
     }
 
     private fun clearEditor() {
@@ -129,14 +127,16 @@ class FluentGeneratorSettingsConfigurable : Configurable {
         isUpdatingFromList = false
     }
 
-    override fun isModified(): Boolean = true // Always allow applying for complex list edits
+    override fun isModified(): Boolean = true
 
     override fun apply() {
         val settings = FluentGeneratorSettingsState.instance
         settings.possibleTags = tagsField.text
         settings.insertTagsAsStrings = asStringsCheckbox.isSelected
         
-        // Save the list model back to the persistent settings
+        // NEW: Save the directory name to the state
+        settings.sqlFolderName = defaultSqlDirectoryField.text 
+        
         val newList = mutableListOf<CustomTemplate>()
         for (i in 0 until listModel.size()) {
             newList.add(listModel.getElementAt(i))
@@ -149,10 +149,11 @@ class FluentGeneratorSettingsConfigurable : Configurable {
         tagsField.text = settings.possibleTags
         asStringsCheckbox.isSelected = settings.insertTagsAsStrings
         
-        // Load the saved templates into the UI
+        // NEW: Load the directory name into the UI text box
+        defaultSqlDirectoryField.text = settings.sqlFolderName
+        
         listModel.clear()
         settings.customTemplates.forEach {
-            // We create a copy so canceling doesn't save accidental edits
             listModel.addElement(CustomTemplate(it.menuName, it.filePrefix, it.content))
         }
         if (listModel.size() > 0) {

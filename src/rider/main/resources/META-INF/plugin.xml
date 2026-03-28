@@ -1,11 +1,12 @@
 <idea-plugin require-restart="true">
     <id>com.slukashov.fluentautogenerator</id>
     <name>FluentAutoGenerator</name>
-    <version>1.0.3.2</version>
+    <version>_PLACEHOLDER_</version>
     <vendor>Serhii Lukashov</vendor>
-    <idea-version since-build="253.0" />
+    <idea-version since-build="_PLACEHOLDER_" />
     <depends>com.intellij.modules.rider</depends>
-
+    <depends>com.intellij.modules.platform</depends>
+    <depends>com.intellij.modules.lang</depends>
     <description>
         <![CDATA[
 <p><strong>FluentAutoGenerator</strong> is a comprehensive FluentMigrator code generation plugin for JetBrains Rider that accelerates migration development with smart templates, navigation tools, and customization options.</p>
@@ -92,5 +93,16 @@
         <codeInsight.lineMarkerProvider
                 language="C#"
                 implementationClass="com.jetbrains.rider.plugins.fluentautogenerator.markers.FluentMigrationLineMarkerProvider"/>
+        
+        <multiHostInjector implementation="com.jetbrains.rider.plugins.fluentautogenerator.injection.FluentSqlLanguageInjector" />
+        
+        <psi.referenceContributor implementation="com.jetbrains.rider.plugins.fluentautogenerator.references.FluentSqlReferenceContributor"/>
+        <intentionAction>
+            <language>C#</language>
+            <className>com.jetbrains.rider.plugins.fluentautogenerator.intentions.CreateSqlMigrationIntention</className>
+        </intentionAction>
+        <completion.contributor
+                language="C#"
+                implementationClass="com.jetbrains.rider.plugins.fluentautogenerator.completion.SqlFileCompletionContributor" />
     </extensions>
 </idea-plugin>

@@ -35,7 +35,8 @@ class FluentGeneratorSettingsState : PersistentStateComponent<FluentGeneratorSet
     
     var possibleTags: String = "Development, Production, Staging, UK, US"
     var insertTagsAsStrings: Boolean = true
-
+    var sqlFolderName: String = "Sql"
+    
     // 2. Store a MutableList of templates!
     var customTemplates: MutableList<CustomTemplate> = mutableListOf(
         CustomTemplate("Create Basic Table", "CreateTable", "/* default create template */"),

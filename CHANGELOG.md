@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## 1.0.2
 
-###  New Features
+### Added
 
 - **Migration Tags System**: Added support for tagging migrations with custom labels (e.g., Development, Production, Staging)
     - New `MigrationInputDialog` with multi-select list for choosing tags during migration creation
@@ -32,7 +32,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
     - SQL file is embedded and executed via the `SqlScript()` method in the migration class
     - Useful for complex SQL operations that are easier to maintain in separate SQL files
 
-### 🔧 Improvements
+### Changed
 
 - **Refactored Migration Actions**:
     - Renamed `ForwardOnlyEmbeddedMigrationAction` to `ForwardOnlyMigrationAction` for clarity
@@ -42,7 +42,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## 1.0.3
 
-### ✨ New Features
+### Added
 
 - **Custom Template System**: Added support for creating and using custom migration templates
     - New dynamic menu in context menu for custom templates created by users
@@ -55,8 +55,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
     - Click the icon to navigate directly to the associated SQL file in the `Sql/` subfolder
     - Improves workflow when working with forward-only migrations with embedded SQL
 
-### 🔧 Improvements
-
 - **Enhanced Settings UI**: Major redesign of the plugin settings page
     - Added split-pane interface for managing custom templates
     - Left panel: List of all custom templates with Add/Remove buttons
@@ -64,15 +62,45 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
     - Templates are editable with live preview
     - Settings now include template management alongside existing tag configuration
 
-### 🐛 Bug Fixes
+### Fixed
 
 - Fixed namespace resolution in `FluentGeneratorSettingsState` and `FluentGeneratorSettingsConfigurable`
 - Updated plugin.xml to properly register the new dynamic template action group and line marker provider
 
 ## 1.0.3.1
-### 🔧 Improvements
+### Fixed
 - Updated search for line markers
 
 ## 1.0.3.2
-### 🔧 Improvements
-- Replced call of getFilesByName to getVirtualFilesByName
+### Fixed
+- Replaced call of getFilesByName to getVirtualFilesByName
+
+## 1.0.4
+### Added
+
+- **SQL Language Injection**
+  - Injects SQL language into C# string literals within `Execute.Sql()` calls
+  - Enables SQL syntax highlighting and validation directly in C# migration code
+  - Supports `Execute.Sql()` and `IfDatabase()` contexts
+
+- **SQL File References & Navigation**
+  - Provides smart reference resolution for SQL file paths in migration code
+  - Enables "Go to Definition" navigation from C# code to SQL files
+  - Supports code completion for SQL file references
+
+- **Code Completion for SQL Files**
+  - Auto-completes SQL file paths when editing migration code
+  - Shows available SQL files in the project with smart filtering
+  - Improves developer experience when referencing SQL files
+
+- **Code Inspections**
+  - Warns if referenced `.sql` files are not marked as `EmbeddedResource` in `.csproj`
+  - Prevents runtime errors from missing SQL embeddings
+  - Yellow squiggle warnings in the editor
+
+- **Quick Fixes & Intentions**
+  - Quick fix (Alt+Enter) to create missing SQL migration files
+
+- **Settings UI Component**
+  - UI component for managing SQL-related settings
+  - Integrates with existing settings page

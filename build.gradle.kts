@@ -9,6 +9,7 @@ plugins {
     alias(libs.plugins.kotlinJvm)
     id("org.jetbrains.intellij.platform") version "2.10.4"     // See https://github.com/JetBrains/intellij-platform-gradle-plugin/releases
     id("me.filippov.gradle.jvm.wrapper") version "0.14.0"
+    id("org.jetbrains.changelog") version "2.2.0"
 }
 
 val isWindows = Os.isFamily(Os.FAMILY_WINDOWS)
@@ -118,7 +119,6 @@ tasks.buildPlugin {
             into("${rootDir}/output")
         }
 
-        // TODO: See also org.jetbrains.changelog: https://github.com/JetBrains/gradle-changelog-plugin
         val changelogText = file("${rootDir}/CHANGELOG.md").readText()
         val changelogMatches = Regex("(?s)(-.+?)(?=##|$)").findAll(changelogText)
         val changeNotes = changelogMatches.map {
@@ -143,27 +143,26 @@ dependencies {
     intellijPlatform {
         rider(ProductVersion, useInstaller = false)
         jetbrainsRuntime()
-
-        // TODO: add plugins
-        // bundledPlugin("uml")
-        // bundledPlugin("com.jetbrains.ChooseRuntime:1.0.9")
     }
 }
 
 tasks.runIde {
-    // Match Rider's default heap size of 1.5Gb (default for runIde is 512Mb)
     maxHeapSize = "1500m"
 }
 
-tasks.patchPluginXml {
-    // TODO: See also org.jetbrains.changelog: https://github.com/JetBrains/gradle-changelog-plugin
-    val changelogText = file("${rootDir}/CHANGELOG.md").readText()
-    val changelogMatches = Regex("(?s)(-.+?)(?=##|\$)").findAll(changelogText)
+changelog {
+    headerParserRegex.set("""^\[?(\d+(?:\.\d+)+)\]?$""".toRegex())
+    groups.set(listOf("Added", "Changed", "Deprecated", "Removed", "Fixed", "Security"))
+}
 
-    changeNotes.set(changelogMatches.map {
-        it.groups[1]!!.value.replace("(?s)\r?\n".toRegex(), "<br />\n")
-    }.take(1).joinToString())
-    sinceBuild.set("253.0")
+tasks.patchPluginXml {
+    changeNotes.set(provider {
+        changelog.renderItem(
+            changelog.getOrNull(project.version.toString()) ?: changelog.getUnreleased(),
+            org.jetbrains.changelog.Changelog.OutputType.HTML
+        )
+    })
+    sinceBuild.set(providers.gradleProperty("SinceBuild"))
 }
 
 tasks.prepareSandbox {
@@ -173,8 +172,6 @@ tasks.prepareSandbox {
     val dllFiles = listOf(
             "$outputFolder/${DotnetPluginId}.dll",
             "$outputFolder/${DotnetPluginId}.pdb",
-
-            // TODO: add additional assemblies
     )
 
     dllFiles.forEach({ f ->
