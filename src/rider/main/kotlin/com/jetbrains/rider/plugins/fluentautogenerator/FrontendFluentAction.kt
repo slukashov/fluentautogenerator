@@ -13,6 +13,11 @@ import java.util.*
 import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
 
+private val sqlEmbeddedResourceIncludeRegex = Regex(
+    """<EmbeddedResource\b[^>]*\bInclude\s*=\s*[\"']([^\"']*\.sql)[\"'][^>]*>""",
+    RegexOption.IGNORE_CASE
+)
+
 abstract class BaseMigrationAction : AnAction() {
 
     override fun update(e: AnActionEvent) {
@@ -221,13 +226,8 @@ abstract class BaseMigrationAction : AnAction() {
    
            try {
                var content = com.intellij.openapi.vfs.VfsUtilCore.loadText(csprojFile)
-               
-               // 2. Check if ANY wildcard for SQL files already exists in the project
-               // We check for common patterns teams might use
-               if (content.contains("\"**\\*.sql\"") || 
-                   content.contains("\"**/*.sql\"") || 
-                   content.contains("\"Sql\\**\\*.sql\"") ||
-                   content.contains("\"Sql\\*.sql\"")) {
+
+               if (hasSqlEmbeddedResourceWildcard(content)) {
                    return // A wildcard is already handling it, do nothing!
                }
    
@@ -245,5 +245,11 @@ abstract class BaseMigrationAction : AnAction() {
            } catch (e: Exception) {
                // If we fail to read/write the project file, skip quietly
            }
+       }
+
+       private fun hasSqlEmbeddedResourceWildcard(content: String): Boolean {
+           return sqlEmbeddedResourceIncludeRegex.findAll(content)
+               .map { it.groupValues[1] }
+               .any { include -> include.contains('*') }
        }
 }
